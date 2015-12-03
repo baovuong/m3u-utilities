@@ -105,7 +105,9 @@ int filepaths_from_m3u(char*** filepaths, char* file_name) {
           max *= 2;
         }
         *(temp_filepaths+current_index) = (char*)malloc(sizeof(char) * (strlen(l)+1));
-        strncpy(*(temp_filepaths+current_index), l, sizeof(l));
+        //*(temp_filepaths+current_index) = (char*)malloc(sizeof(char) * 512);
+        strncpy(*(temp_filepaths+current_index), l, sizeof(char) * (strlen(l)+1));
+        //printf("%s\n", *(temp_filepaths) );
         state = 1;
         break;
       default:
@@ -123,6 +125,8 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
+  printf("%s %s\n", argv[1], argv[2]);
+
   char** paths;
   int paths_length;
   paths_length = filepaths_from_m3u(&paths, argv[1]);
@@ -130,15 +134,24 @@ int main(int argc, char* argv[]) {
 
   for (int i=0; i<paths_length; i++) {
     int lso = strrchr(paths[i], '/')-paths[i]+1;
-    char file_name[ strlen(paths[i]) - lso ];
+    lso = lso >=0 ? lso : 0;
+    char file_name[ strlen(paths[i]) - lso + 1 ];
     strncpy(file_name, paths[i]+lso, strlen(paths[i]) - lso + 1);
 
-    //char* pf_file_name;
-    //path_friendly(&pf_file_name, file_name);
+    char* pf_file_name;
+    path_friendly(&pf_file_name, file_name);
 
-    printf("copying %s to %s%s\n", paths[i], argv[2], file_name);
+    char* pf_src_path;
+    path_friendly(&pf_src_path, paths[i]);
+
+    printf("copying %s to %s%s\n", pf_src_path, argv[2], pf_file_name);
+
+    free(pf_src_path);
+    free(pf_file_name);
   }
-
+  for (int i=0; i<paths_length; i++) {
+    free(paths[i]);
+  }
   free(paths);
   return 0;
 }
