@@ -3,34 +3,8 @@
 #include <string.h>   // strlen, strstr
 #include <unistd.h>   // exec
 #include <sys/stat.h> // S_ISDIR,
-
-
-
-
-void path_friendly(char** output, const char* text) {
-
-  // count number of spaces
-  int num_spaces = 0;
-  char *pch = strchr(text, ' ');
-  while (pch != NULL) {
-    num_spaces++;
-    pch = strchr(pch+1, ' ');
-  }
-
-  char* o = (char*)malloc(sizeof(char) * (strlen(text) + num_spaces + 1));
-  int j = 0;
-  for (int i=0; i<strlen(text); i++) {
-    if (text[i] == ' ') {
-      o[j] = '\\';
-      j++;
-    }
-    o[j] = text[i];
-    j++;
-  }
-  o[j] = '\0';
-  *output = o;
-
-}
+#include <sys/types.h>
+#include <sys/wait.h>
 
 /** boop boop boop
  *
@@ -138,20 +112,30 @@ int main(int argc, char* argv[]) {
     char file_name[ strlen(paths[i]) - lso + 1 ];
     strncpy(file_name, paths[i]+lso, strlen(paths[i]) - lso + 1);
 
-    char* pf_file_name;
-    path_friendly(&pf_file_name, file_name);
 
-    char* pf_src_path;
-    path_friendly(&pf_src_path, paths[i]);
+    char dest[strlen(argv[2])+strlen(file_name)+2];
+    strcpy(dest, argv[2]);
+    if (dest[strlen(dest) - 1] != '/') {
+      strcat(dest, "/");
+    }
+    strcat(dest,file_name);
 
-    printf("copying %s to %s%s\n", pf_src_path, argv[2], pf_file_name);
+    printf("copying %s to %s%s\n", paths[i], argv[2], file_name);
 
-    free(pf_src_path);
-    free(pf_file_name);
+    pid_t pid = fork();
+
+    if (pid == 0) {
+      execl("/bin/cp", "cp", paths[i], dest, NULL);
+      _exit(EXIT_SUCCESS);
+    } else {
+      int status;
+      (void)waitpid(pid, &status, 0);
+    }
   }
   for (int i=0; i<paths_length; i++) {
     free(paths[i]);
   }
   free(paths);
+
   return 0;
 }
